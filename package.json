@@ -1,0 +1,109 @@
+{
+  "name": "codex-reminder",
+  "displayName": "Codex Reminder",
+  "description": "Show an unread counter on the Windows taskbar when Codex replies or asks for input.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "codex",
+    "openai",
+    "notification",
+    "taskbar",
+    "badge"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codexReminder.openCodex",
+        "title": "Open Codex and Mark Read",
+        "category": "Codex Reminder",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "codexReminder.clear",
+        "title": "Clear Unread Count",
+        "category": "Codex Reminder",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "codexReminder.test",
+        "title": "Test Taskbar Badge",
+        "category": "Codex Reminder",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "codexReminder.showOutput",
+        "title": "Show Diagnostic Output",
+        "category": "Codex Reminder"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "codexReminder.clear",
+          "group": "navigation@99",
+          "when": "view == chatgpt.sidebarView || view == chatgpt.sidebarSecondaryView"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Codex Reminder",
+      "properties": {
+        "codexReminder.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Codex unread detection and the Windows taskbar badge."
+        },
+        "codexReminder.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the unread count in the VS Code status bar as a fallback and shortcut."
+        },
+        "codexReminder.clearActiveThreadOnFocus": {
+          "type": "boolean",
+          "default": true,
+          "description": "Clear unread items for the currently visible Codex thread when this VS Code window gains focus."
+        },
+        "codexReminder.pollIntervalMs": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 300,
+          "maximum": 10000,
+          "description": "How often to inspect local Codex event files."
+        },
+        "codexReminder.maxTaskbarCount": {
+          "type": "number",
+          "default": 99,
+          "minimum": 1,
+          "maximum": 999,
+          "description": "Largest numeric value rendered in the taskbar overlay; larger values use a plus sign."
+        },
+        "codexReminder.codexHome": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Codex home directory. Leave empty to use CODEX_HOME or ~/.codex."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "check": "node --check src/extension.js && node --check src/event-classifier.js && node --check src/session-monitor.js && node --check src/taskbar-badge.js && node --test",
+    "test": "node --test",
+    "test:taskbar": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/set-taskbar-badge.ps1 -Count 0 -DryRun",
+    "package:vsix": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
+  }
+}
