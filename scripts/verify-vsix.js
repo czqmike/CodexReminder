@@ -48,8 +48,11 @@ for (const name of names) {
 }
 
 const manifest = JSON.parse(readEntry(entries, 'extension/package.json').toString('utf8'));
+const sourceManifest = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, '..', 'package.json'), 'utf8')
+);
 assert.equal(manifest.name, 'codex-reminder');
-assert.equal(manifest.version, '1.0.0');
+assert.equal(manifest.version, sourceManifest.version);
 assert.equal(manifest.publisher, 'czqmike');
 assert.equal(manifest.engines.vscode, '^1.130.0');
 assert.deepEqual(manifest.extensionDependencies, ['openai.chatgpt']);

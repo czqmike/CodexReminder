@@ -9,7 +9,7 @@ const manifest = readJson('package.json');
 
 assert.equal(manifest.name, 'codex-reminder');
 assert.equal(manifest.displayName, 'Codex Reminder');
-assert.equal(manifest.version, '1.0.0');
+assert.match(manifest.version, /^\d+\.\d+\.\d+$/, 'Manifest version must be stable SemVer');
 assert.equal(manifest.publisher, 'czqmike');
 assert.equal(manifest.license, 'SEE LICENSE IN LICENSE');
 assert.equal(manifest.engines?.vscode, '^1.130.0');

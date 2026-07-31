@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1] - 2026-07-31
+
+### Fixed
+
+- Create the `dist` directory before packaging so clean GitHub runners can generate the VSIX.
+- Validate packaged versions against `package.json` so future patch releases do not require verifier code changes.
+
 All notable changes to Codex Reminder are documented here.
 
 ## [1.0.0] - 2026-07-31

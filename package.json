@@ -2,7 +2,7 @@
   "name": "codex-reminder",
   "displayName": "Codex Reminder",
   "description": "Unofficial reminder for Codex replies and input requests in the VS Code status bar and Windows taskbar.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "czqmike",
   "author": {
     "name": "czqmike"
@@ -139,7 +139,7 @@
     "test:taskbar": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/set-taskbar-badge.ps1 -Count 0 -DryRun",
     "verify:manifest": "node scripts/verify-manifest.js",
     "package:list": "vsce ls --tree",
-    "package:vsix": "vsce package --out dist/codex-reminder.vsix --githubBranch master",
+    "package:vsix": "node -e \"require('node:fs').mkdirSync('dist', { recursive: true })\" && vsce package --out dist/codex-reminder.vsix --githubBranch master",
     "verify:vsix": "node scripts/verify-vsix.js dist/codex-reminder.vsix",
     "verify:package": "npm run verify:manifest && npm run package:list && npm run package:vsix && npm run verify:vsix",
     "publish:marketplace": "vsce publish --packagePath dist/codex-reminder.vsix --oidc",
