@@ -53,7 +53,9 @@ jobs:
   marketplace:
     name: Publish to VS Code Marketplace
     if: vars.MARKETPLACE_OIDC_ENABLED == 'true'
-    needs: build
+    needs:
+      - build
+      - github-release
     runs-on: ubuntu-latest
     environment: marketplace
     permissions:
