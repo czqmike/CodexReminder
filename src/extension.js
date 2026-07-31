@@ -3,6 +3,8 @@
 const os = require('node:os');
 const path = require('node:path');
 const vscode = require('vscode');
+const { normalizeConfig } = require('./config');
+const { getDisplayState } = require('./display-state');
 const { UnreadCounter } = require('./event-classifier');
 const { CodexLogMonitor, CodexSessionMonitor } = require('./session-monitor');
 const { TaskbarBadge } = require('./taskbar-badge');
@@ -227,32 +229,34 @@ class ReminderController {
 
   async _render() {
     const cfg = getConfig();
-    const count = cfg.enabled ? this.counter.total : 0;
-    void this.badge.setCount(count);
+    const display = getDisplayState({
+      enabled: cfg.enabled,
+      showStatusBar: cfg.showStatusBar,
+      count: this.counter.total
+    });
+    void this.badge.setCount(display.badgeCount);
 
-    if (!cfg.enabled || !cfg.showStatusBar || count === 0) {
+    if (!display.statusVisible) {
       this.statusBar.hide();
       return;
     }
 
-    this.statusBar.text = `$(bell-dot) Codex ${count}`;
-    this.statusBar.tooltip =
-      `${count} unread Codex ${count === 1 ? 'reply or question' : 'replies or questions'}. ` +
-      'Click to open Codex and mark them read.';
+    this.statusBar.text = display.statusText;
+    this.statusBar.tooltip = display.statusTooltip;
     this.statusBar.show();
   }
 }
 
 function getConfig() {
   const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
-  return {
-    enabled: config.get('enabled', true),
-    showStatusBar: config.get('showStatusBar', true),
-    clearActiveThreadOnFocus: config.get('clearActiveThreadOnFocus', true),
-    pollIntervalMs: clamp(config.get('pollIntervalMs', 1000), 300, 10000),
-    maxTaskbarCount: clamp(config.get('maxTaskbarCount', 99), 1, 999),
-    codexHome: config.get('codexHome', '').trim()
-  };
+  return normalizeConfig({
+    enabled: config.get('enabled'),
+    showStatusBar: config.get('showStatusBar'),
+    clearActiveThreadOnFocus: config.get('clearActiveThreadOnFocus'),
+    pollIntervalMs: config.get('pollIntervalMs'),
+    maxTaskbarCount: config.get('maxTaskbarCount'),
+    codexHome: config.get('codexHome')
+  });
 }
 
 function getWorkspaceName() {
@@ -274,14 +278,6 @@ function expandHome(value) {
     return path.join(os.homedir(), value.slice(2));
   }
   return value;
-}
-
-function clamp(value, min, max) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return min;
-  }
-  return Math.min(Math.max(Math.floor(numeric), min), max);
 }
 
 function shortId(value) {

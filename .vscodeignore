@@ -1,6 +1,15 @@
-.gitignore
+.git/**
+.github/**
 .vscode/**
-build/**
 dist/**
 test/**
+scripts/check-release.js
+scripts/create-marketplace-assets.ps1
+scripts/verify-manifest.js
+scripts/verify-vsix.js
+.gitignore
+.vscodeignore
+package-lock.json
+RELEASING.md
 *.vsix
+*.log

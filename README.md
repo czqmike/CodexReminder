@@ -1,213 +1,160 @@
 # Codex Reminder
 
-## What's this
+> Unofficial community extension. Codex Reminder is not affiliated with, endorsed by, or supported by OpenAI.
 
-A VS Code extension that lets you know when Codex has finished its work. Similar
-to Cursor, it displays a small numeric badge on the taskbar when a task completes
-or Codex needs your input, so you can quickly follow up on the changes and give
-your next instruction.
+See when Codex has replied or needs your input without repeatedly returning to its conversation. Codex Reminder shows a local unread count in the VS Code status bar and, on Windows, as a numeric taskbar overlay.
 
-The count is cleared when you open the corresponding Codex conversation,
-the VS Code window regains focus, or you click `Codex N` in the status bar.
+[Install from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=czqmike.codex-reminder)
 
-### How it works
+![An anonymized illustration of the Windows taskbar badge](images/taskbar-badge.png)
 
-- Monitors only local Codex JSONL events under `CODEX_HOME/sessions`.
-- Counts only main threads with `originator=codex_vscode` and
-  `thread_source=user`, excluding approval reviewers and other sub-agent threads.
-- Filters events by workspace path to prevent duplicate counts across multiple
-  VS Code windows.
-- Uses `Codex.log` from the current VS Code Extension Host to determine which
-  thread is being viewed.
-- Uses Windows `ITaskbarList3.SetOverlayIcon` to render a true numeric taskbar
-  badge.
-- Does not access the network or read, store, or upload response content.
+## Features
 
-### Installation and deployment
+- Counts completed Codex replies and `request_user_input` prompts.
+- Shows a true numeric Windows taskbar overlay using `ITaskbarList3.SetOverlayIcon`.
+- Provides a clickable `Codex N` status bar item on Windows, Linux, and macOS.
+- Clears the relevant count when the Codex conversation is opened or becomes visible.
+- Filters by workspace and ignores reviewer and sub-agent threads.
+- Works locally without telemetry or network requests.
 
-Make sure the VS Code `code` command is available in `PATH`.
+![An anonymized illustration of the VS Code status bar fallback](images/status-bar.png)
 
-#### Install from GitHub Release (recommended)
+## Requirements
 
-Choose the commands for your operating system. They download the `.vsix` from the
-[latest GitHub Release](https://github.com/czqmike/CodexReminder/releases/latest)
-and install it.
+- VS Code 1.130 or newer.
+- The official Codex extension (`openai.chatgpt`), installed automatically as an extension dependency.
+- Windows 10/11 for the numeric system taskbar overlay. Linux and macOS use the VS Code status bar only.
+- A local UI Extension Host. Install Codex Reminder locally when using SSH, WSL, or Dev Containers.
 
-##### Windows (PowerShell)
+## Install
 
-```powershell
-$release = Invoke-RestMethod -Uri 'https://api.github.com/repos/czqmike/CodexReminder/releases/latest'
-$asset = $release.assets | Where-Object { $_.name -like '*.vsix' } | Select-Object -First 1
-$vsixPath = Join-Path $env:TEMP $asset.name
-Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $vsixPath
-code --install-extension $vsixPath --force
-```
-
-##### Linux / macOS (bash or zsh)
+From VS Code, open Extensions, search for `Codex Reminder`, and select **Install**. You can also run:
 
 ```sh
-curl -fL \
-  'https://github.com/czqmike/CodexReminder/releases/latest/download/codex-reminder-0.1.0.vsix' \
-  -o /tmp/codex-reminder-0.1.0.vsix
-code --install-extension /tmp/codex-reminder-0.1.0.vsix --force
+code --install-extension czqmike.codex-reminder
 ```
 
-On Linux and macOS, the unread count is available in the VS Code status bar.
-The numeric system taskbar badge is currently supported on Windows only.
+After installation, run **Developer: Reload Window** if the extension does not activate immediately.
 
-#### Build and install from source (Windows)
+## How it works
 
-The project has no third-party npm dependencies.
+Codex Reminder monitors local Codex session events under `CODEX_HOME/sessions` (or `~/.codex/sessions`) and the current Extension Host's `openai.chatgpt/Codex.log`. It counts only user-created VS Code threads for the current workspace. The extension does not modify those files.
+
+### Privacy
+
+| Area | Behavior |
+| --- | --- |
+| Files read | Local Codex JSONL event files and `Codex.log` |
+| Fields used | Session/thread/workspace identifiers, event type/call identifier, and view/read state |
+| Local storage | Unread counts keyed by thread identifier in VS Code workspace state |
+| Response text | Records are parsed locally, but response text is not used, logged, or persisted by this extension |
+| Network | No telemetry, uploads, or outbound network requests |
+
+Use **Codex Reminder: Clear Unread Count** to remove the stored unread state for the current workspace. Uninstalling the extension removes its VS Code extension storage according to VS Code's normal lifecycle.
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `Codex Reminder: Open Codex and Mark Read` | Open Codex and clear the current unread count |
+| `Codex Reminder: Clear Unread Count` | Clear all unread counts in this workspace |
+| `Codex Reminder: Test Taskbar Badge` | Add a local test unread item |
+| `Codex Reminder: Show Diagnostic Output` | Open the extension output channel |
+
+## Settings
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `codexReminder.enabled` | `true` | Enable monitoring and presentation |
+| `codexReminder.showStatusBar` | `true` | Show the clickable status bar fallback |
+| `codexReminder.clearActiveThreadOnFocus` | `true` | Clear a visible thread when the window regains focus |
+| `codexReminder.pollIntervalMs` | `1000` | Local event polling interval, from 300 to 10000 ms |
+| `codexReminder.maxTaskbarCount` | `99` | Largest number shown before a plus sign |
+| `codexReminder.codexHome` | empty | Override `CODEX_HOME` / `~/.codex` |
+
+## Compatibility and limitations
+
+The 1.0.0 event parser was developed against VS Code 1.130 and Codex extension build `openai.chatgpt-26.721.41059`. Codex does not currently expose a public reply-event API, so this extension relies on local Codex event and diagnostic formats. A future Codex update may require a corresponding Codex Reminder update.
+
+Virtual workspaces are not supported because local Codex files are required. Untrusted local workspaces are supported: the extension does not execute workspace code or read workspace file contents.
+
+## Troubleshooting
+
+1. Run **Codex Reminder: Test Taskbar Badge**.
+2. Open **Output > Codex Reminder** and check the reported session and log paths.
+3. Confirm that both Codex and Codex Reminder are installed in the local UI Extension Host.
+4. For multiple VS Code windows, confirm that the active workspace name appears in the window title.
+5. If PowerShell is restricted by device policy, the Windows overlay might be unavailable; the status bar remains usable.
+
+For help, see [SUPPORT.md](SUPPORT.md). Security reports are covered by [SECURITY.md](SECURITY.md).
+
+## Development
+
+The extension has no runtime npm dependencies.
 
 ```powershell
-git clone https://github.com/czqmike/CodexReminder.git
-Set-Location .\CodexReminder
+npm ci
 npm run check
 npm run test:taskbar
-npm run package:vsix
-code --install-extension .\dist\codex-reminder-0.1.0.vsix --force
+npm run verify:package
+code --install-extension .\dist\codex-reminder.vsix --force
 ```
 
-After installation, run `Developer: Reload Window`.
+Release maintainers should follow [RELEASING.md](RELEASING.md).
 
-For development and debugging, you can also open the cloned directory directly
-in VS Code and press `F5`.
+---
 
-### Commands
+# 中文说明
 
-- `Codex Reminder: Open Codex and Mark Read`
-- `Codex Reminder: Clear Unread Count`
-- `Codex Reminder: Test Taskbar Badge`
-- `Codex Reminder: Show Diagnostic Output`
+> 非官方社区扩展。Codex Reminder 与 OpenAI 不存在隶属、认可或官方支持关系。
 
-The `Codex N` status bar item is clickable. It opens Codex and marks the current
-count as read.
+Codex 回复完成或需要你输入时，扩展会在 VS Code 状态栏显示本地未读计数；Windows 上还会显示数字任务栏角标，让你无需反复切回 Codex 会话检查进度。
 
-### Settings
+[从 VS Code Marketplace 安装](https://marketplace.visualstudio.com/items?itemName=czqmike.codex-reminder)
 
-- `codexReminder.enabled`
-- `codexReminder.showStatusBar`
-- `codexReminder.clearActiveThreadOnFocus`
-- `codexReminder.pollIntervalMs`
-- `codexReminder.maxTaskbarCount`
-- `codexReminder.codexHome`
+## 功能
 
-### Compatibility
+- 统计 Codex 已完成的回复和 `request_user_input` 提问。
+- Windows 上通过 `ITaskbarList3.SetOverlayIcon` 显示真实数字任务栏角标。
+- Windows、Linux 和 macOS 均提供可点击的 `Codex N` 状态栏入口。
+- 打开对应 Codex 会话或让其重新可见时清除相关计数。
+- 按工作区过滤，并排除 reviewer 和子代理线程。
+- 全程本地运行，不包含遥测或网络请求。
 
-The extension is implemented for Windows, VS Code 1.130, and the local event
-format used by OpenAI Codex extension `openai.chatgpt-26.721.41059`.
+## 系统要求与安装
 
-VS Code does not provide a public API for monitoring replies in another
-extension's Webview, and Codex IDE does not expose a public reply-event API.
-This extension therefore uses Codex's local session and diagnostic events. If
-Codex changes these local formats in the future, the diagnostic output will log
-ignored files and parsing errors to help with troubleshooting and updates.
+- VS Code 1.130 或更新版本。
+- 官方 Codex 扩展 `openai.chatgpt`；Marketplace 会按依赖自动安装。
+- 数字系统任务栏角标仅支持 Windows 10/11；Linux 和 macOS 使用状态栏。
+- SSH、WSL 或 Dev Containers 场景下，请把本扩展安装在本地 UI Extension Host。
 
-If the taskbar badge does not appear:
-
-1. Run `Codex Reminder: Test Taskbar Badge`.
-2. Open `Output > Codex Reminder`.
-3. Make sure the extension is installed in the local UI Extension Host, not in a
-   remote SSH/WSL environment.
-4. When using multiple windows, make sure the current workspace name appears in
-   the VS Code window title.
-
-## 是什么
-
-一个用来提醒你 Codex 干完活的 VSCode 插件，表现类似于 Cursor，当任务完成后或 Codex 需要提问时，会在任务栏界面出现一个小计数角标。
-使你可以继续跟进修改，做出下一步指令。
-打开对应 Codex 会话、让该 VS Code 窗口重新获得焦点，或点击状态栏中的
-`Codex N` 后，计数会被清除。
-
-### 工作方式
-
-- 仅监听本机 `CODEX_HOME/sessions` 下的 Codex JSONL 事件。
-- 只接受 `originator=codex_vscode`、`thread_source=user` 的主线程，
-  会排除审批 reviewer 和其他子代理线程。
-- 用工作区路径过滤事件，避免多个 VS Code 窗口重复计数。
-- 从当前 VS Code Extension Host 的 `Codex.log` 判断正在查看的线程。
-- 通过 Windows `ITaskbarList3.SetOverlayIcon` 绘制真正的数字任务栏角标。
-- 不访问网络，也不读取、保存或上传回复正文。
-
-### 安装与部署
-
-请先确保 VS Code 的 `code` 命令已加入 `PATH`。
-
-#### 从 GitHub Release 安装（推荐）
-
-请根据操作系统选择命令。命令会从
-[最新 GitHub Release](https://github.com/czqmike/CodexReminder/releases/latest)
-下载 `.vsix` 并安装。
-
-##### Windows（PowerShell）
-
-```powershell
-$release = Invoke-RestMethod -Uri 'https://api.github.com/repos/czqmike/CodexReminder/releases/latest'
-$asset = $release.assets | Where-Object { $_.name -like '*.vsix' } | Select-Object -First 1
-$vsixPath = Join-Path $env:TEMP $asset.name
-Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $vsixPath
-code --install-extension $vsixPath --force
-```
-
-##### Linux / macOS（bash 或 zsh）
+在 VS Code 扩展面板搜索 `Codex Reminder` 并安装，或运行：
 
 ```sh
-curl -fL \
-  'https://github.com/czqmike/CodexReminder/releases/latest/download/codex-reminder-0.1.0.vsix' \
-  -o /tmp/codex-reminder-0.1.0.vsix
-code --install-extension /tmp/codex-reminder-0.1.0.vsix --force
+code --install-extension czqmike.codex-reminder
 ```
 
-在 Linux 和 macOS 上，未读计数会显示在 VS Code 状态栏中；系统任务栏的
-数字角标目前仅支持 Windows。
+## 工作方式与隐私
 
-#### 从源码构建并安装（Windows）
+扩展只读取 `CODEX_HOME/sessions`（默认 `~/.codex/sessions`）下的本地 Codex JSONL 事件，以及当前 Extension Host 的 `openai.chatgpt/Codex.log`，不会修改这些文件。
 
-项目不依赖第三方 npm 包。
+- 使用的字段：会话、线程和工作区标识，事件类型/调用标识，以及会话可见和已读状态。
+- 本地保存：按线程标识统计的未读数量，存放在 VS Code 工作区状态中。
+- 回复正文：事件记录会在本机解析，但本扩展不会使用、记录或持久化回复正文。
+- 网络行为：不发送遥测、不上传数据，也不发起任何外部网络请求。
 
-```powershell
-git clone https://github.com/czqmike/CodexReminder.git
-Set-Location .\CodexReminder
-npm run check
-npm run test:taskbar
-npm run package:vsix
-code --install-extension .\dist\codex-reminder-0.1.0.vsix --force
-```
+运行 **Codex Reminder: Clear Unread Count** 可以删除当前工作区的未读状态。
 
-安装后执行 `Developer: Reload Window`。
+## 兼容性与故障排查
 
-开发调试时，也可以直接在 VS Code 中打开克隆后的目录并按 `F5`。
+1.0.0 的事件解析器针对 VS Code 1.130 和 Codex 扩展 `openai.chatgpt-26.721.41059` 开发。由于 Codex 当前没有公开的回复事件 API，本扩展依赖其本地事件和诊断格式；Codex 更新后可能需要同步更新本扩展。
 
-### 命令
+若角标未出现：
 
-- `Codex Reminder: Open Codex and Mark Read`
-- `Codex Reminder: Clear Unread Count`
-- `Codex Reminder: Test Taskbar Badge`
-- `Codex Reminder: Show Diagnostic Output`
-
-状态栏的 `Codex N` 可点击：它会打开 Codex 并将当前计数标记为已读。
-
-### 设置
-
-- `codexReminder.enabled`
-- `codexReminder.showStatusBar`
-- `codexReminder.clearActiveThreadOnFocus`
-- `codexReminder.pollIntervalMs`
-- `codexReminder.maxTaskbarCount`
-- `codexReminder.codexHome`
-
-### 兼容性
-
-已针对 Windows、VS Code 1.130 和 OpenAI Codex 扩展
-`openai.chatgpt-26.721.41059` 的本地事件格式实现。
-
-VS Code 没有公开用于监听其他扩展 Webview 回复的 API，Codex IDE 也没有公开的
-回复事件 API。因此本扩展使用 Codex 的本地会话与诊断事件；如果未来 Codex 修改
-这些本地格式，诊断输出会记录被忽略的文件或解析错误，便于调整。
-
-如果任务栏没有出现角标：
-
-1. 运行 `Codex Reminder: Test Taskbar Badge`。
-2. 查看 `Output > Codex Reminder`。
-3. 确认插件安装在本地 UI Extension Host，而不是 SSH/WSL 远端。
+1. 运行 **Codex Reminder: Test Taskbar Badge**。
+2. 查看 **Output > Codex Reminder** 中记录的会话与日志路径。
+3. 确认 Codex 与本扩展都安装在本地 UI Extension Host。
 4. 多窗口场景下，确认当前工作区名称出现在 VS Code 窗口标题中。
+5. 如果设备策略禁止 PowerShell，Windows 任务栏角标可能不可用，但状态栏仍可使用。
+
+命令和设置名称与英文部分完全相同；支持与安全报告方式请参阅 [SUPPORT.md](SUPPORT.md) 和 [SECURITY.md](SECURITY.md)。

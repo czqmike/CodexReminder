@@ -1,12 +1,30 @@
 {
   "name": "codex-reminder",
   "displayName": "Codex Reminder",
-  "description": "Show an unread counter on the Windows taskbar when Codex replies or asks for input.",
-  "version": "0.1.0",
-  "publisher": "local",
-  "license": "MIT",
+  "description": "Unofficial reminder for Codex replies and input requests in the VS Code status bar and Windows taskbar.",
+  "version": "1.0.0",
+  "publisher": "czqmike",
+  "author": {
+    "name": "czqmike"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/czqmike/CodexReminder.git"
+  },
+  "homepage": "https://github.com/czqmike/CodexReminder#readme",
+  "bugs": {
+    "url": "https://github.com/czqmike/CodexReminder/issues"
+  },
+  "qna": "https://github.com/czqmike/CodexReminder/issues",
+  "pricing": "Free",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#111827",
+    "theme": "dark"
+  },
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.130.0"
   },
   "categories": [
     "Other"
@@ -16,11 +34,25 @@
     "openai",
     "notification",
     "taskbar",
-    "badge"
+    "badge",
+    "unread",
+    "agent"
   ],
   "extensionKind": [
     "ui"
   ],
+  "extensionDependencies": [
+    "openai.chatgpt"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Codex Reminder requires local Codex session and Extension Host log files."
+    }
+  },
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -101,9 +133,19 @@
     }
   },
   "scripts": {
-    "check": "node --check src/extension.js && node --check src/event-classifier.js && node --check src/session-monitor.js && node --check src/taskbar-badge.js && node --test",
+    "check:syntax": "node --check src/config.js && node --check src/display-state.js && node --check src/extension.js && node --check src/event-classifier.js && node --check src/session-monitor.js && node --check src/taskbar-badge.js && node --check scripts/check-release.js && node --check scripts/verify-manifest.js && node --check scripts/verify-vsix.js",
+    "check": "npm run check:syntax && node --test",
     "test": "node --test",
     "test:taskbar": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/set-taskbar-badge.ps1 -Count 0 -DryRun",
-    "package:vsix": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
+    "verify:manifest": "node scripts/verify-manifest.js",
+    "package:list": "vsce ls --tree",
+    "package:vsix": "vsce package --out dist/codex-reminder.vsix --githubBranch master",
+    "verify:vsix": "node scripts/verify-vsix.js dist/codex-reminder.vsix",
+    "verify:package": "npm run verify:manifest && npm run package:list && npm run package:vsix && npm run verify:vsix",
+    "publish:marketplace": "vsce publish --packagePath dist/codex-reminder.vsix --oidc",
+    "vscode:prepublish": "npm run check && npm run verify:manifest"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "3.9.2"
   }
 }

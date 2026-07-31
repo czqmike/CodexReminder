@@ -8,14 +8,15 @@ class TaskbarBadge {
     this.workspaceName = options.workspaceName || '';
     this.maxCount = options.maxCount || 99;
     this.output = options.output;
+    this.platform = options.platform || process.platform;
+    this.spawn = options.spawn || spawn;
     this.desiredCount = 0;
     this.appliedCount = undefined;
     this.running = undefined;
   }
 
   setCount(rawCount) {
-    const count = Number.isFinite(rawCount) ? Math.max(0, Math.floor(rawCount)) : 0;
-    this.desiredCount = Math.min(count, this.maxCount + 1);
+    this.desiredCount = normalizeBadgeCount(rawCount, this.maxCount);
     if (!this.running) {
       this.running = this._drain().finally(() => {
         this.running = undefined;
@@ -39,7 +40,9 @@ class TaskbarBadge {
           count: target,
           maxCount: this.maxCount,
           scriptPath: this.scriptPath,
-          workspaceName: this.workspaceName
+          workspaceName: this.workspaceName,
+          platform: this.platform,
+          spawn: this.spawn
         });
       } catch (error) {
         this.output?.appendLine(`Unable to update taskbar badge: ${formatError(error)}`);
@@ -50,32 +53,15 @@ class TaskbarBadge {
 }
 
 function runPowerShellBadge(options) {
-  if (process.platform !== 'win32') {
+  if ((options.platform || process.platform) !== 'win32') {
     return Promise.resolve();
   }
 
-  const args = [
-    '-NoProfile',
-    '-NonInteractive',
-    '-ExecutionPolicy',
-    'Bypass',
-    '-WindowStyle',
-    'Hidden',
-    '-File',
-    options.scriptPath,
-    '-Count',
-    String(options.count),
-    '-MaxCount',
-    String(options.maxCount),
-    '-ExtensionHostPid',
-    String(process.pid)
-  ];
-  if (options.workspaceName) {
-    args.push('-WorkspaceName', options.workspaceName);
-  }
+  const args = buildPowerShellArgs(options);
+  const spawnProcess = options.spawn || spawn;
 
   return new Promise((resolve, reject) => {
-    const child = spawn('powershell.exe', args, {
+    const child = spawnProcess('powershell.exe', args, {
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -95,11 +81,41 @@ function runPowerShellBadge(options) {
   });
 }
 
+function buildPowerShellArgs(options) {
+  const args = [
+    '-NoProfile',
+    '-NonInteractive',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-WindowStyle',
+    'Hidden',
+    '-File',
+    options.scriptPath,
+    '-Count',
+    String(options.count),
+    '-MaxCount',
+    String(options.maxCount),
+    '-ExtensionHostPid',
+    String(process.pid)
+  ];
+  if (options.workspaceName) {
+    args.push('-WorkspaceName', options.workspaceName);
+  }
+  return args;
+}
+
+function normalizeBadgeCount(rawCount, maxCount) {
+  const count = Number.isFinite(rawCount) ? Math.max(0, Math.floor(rawCount)) : 0;
+  return Math.min(count, maxCount + 1);
+}
+
 function formatError(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
 module.exports = {
+  buildPowerShellArgs,
+  normalizeBadgeCount,
   TaskbarBadge,
   runPowerShellBadge
 };
