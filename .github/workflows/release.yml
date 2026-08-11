@@ -13,15 +13,15 @@ jobs:
     name: Build release artifact
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: node scripts/check-release.js "$GITHUB_REF_NAME"
       - run: npm run verify:package
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: codex-reminder-vsix
           path: dist/codex-reminder.vsix
@@ -35,20 +35,21 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: codex-reminder-vsix
           path: dist
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME"
-          dist/codex-reminder.vsix
-          --repo "$GITHUB_REPOSITORY"
-          --verify-tag
-          --title "Codex Reminder ${GITHUB_REF_NAME#v}"
-          --generate-notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/codex-reminder.vsix --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/codex-reminder.vsix --repo "$GITHUB_REPOSITORY" --verify-tag --title "Codex Reminder ${GITHUB_REF_NAME#v}" --generate-notes
+          fi
 
   marketplace:
     name: Publish to VS Code Marketplace
@@ -62,13 +63,13 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: codex-reminder-vsix
           path: dist

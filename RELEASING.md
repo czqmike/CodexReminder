@@ -4,7 +4,7 @@
 
 - A normal push to `master` runs the cross-platform test suite and uploads a verified VSIX as a GitHub Actions artifact. It does not create a public release or publish to Marketplace.
 - Pushing an exact `vX.Y.Z` tag is the explicit release action. The tag, `package.json`, and `CHANGELOG.md` versions must match.
-- The release workflow builds the VSIX once, attaches that exact file to the GitHub Release, and only then publishes the same artifact to Marketplace through OIDC.
+- The release workflow builds the VSIX once, attaches that exact file to the GitHub Release, and only then publishes the same artifact to Marketplace through OIDC. Rerunning it replaces a missing or incomplete VSIX asset without creating a duplicate Release.
 - Marketplace versions are immutable. Increment `package.json` before every new release; never reuse a version number.
 
 ## Repository-side release

@@ -1,16 +1,11 @@
 # Changelog
 
-## Unreleased
+## [1.0.1] - 2026-08-11
 
 ### Fixed
 
 - Clear a thread when Codex reports it read even if its VS Code window lost focus before the broadcast arrived.
 - Target the matching VS Code top-level window for taskbar overlays instead of letting multiple Extension Hosts contend for one process-level main window.
-
-## [1.0.1] - 2026-07-31
-
-### Fixed
-
 - Create the `dist` directory before packaging so clean GitHub runners can generate the VSIX.
 - Validate packaged versions against `package.json` so future patch releases do not require verifier code changes.
 
