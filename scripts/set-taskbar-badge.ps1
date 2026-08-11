@@ -17,11 +17,13 @@ Add-Type -AssemblyName System.Drawing
 
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @"
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CodexReminder.Native {
     internal enum TBPFLAG {
@@ -69,9 +71,84 @@ namespace CodexReminder.Native {
     internal class TaskbarList {
     }
 
+    public sealed class WindowInfo {
+        public IntPtr Handle { get; set; }
+        public int ProcessId { get; set; }
+        public string Title { get; set; }
+    }
+
     public static class Badge {
+        private delegate bool EnumWindowsProc(IntPtr windowHandle, IntPtr parameter);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindowVisible(IntPtr windowHandle);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(
+            IntPtr windowHandle,
+            out uint processId
+        );
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetWindowTextLength(IntPtr windowHandle);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetWindowText(
+            IntPtr windowHandle,
+            StringBuilder text,
+            int maxCount
+        );
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetClassName(
+            IntPtr windowHandle,
+            StringBuilder className,
+            int maxCount
+        );
+
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool DestroyIcon(IntPtr icon);
+
+        public static WindowInfo[] EnumerateCodeWindows() {
+            List<WindowInfo> windows = new List<WindowInfo>();
+            EnumWindows(delegate(IntPtr windowHandle, IntPtr parameter) {
+                if (!IsWindowVisible(windowHandle)) {
+                    return true;
+                }
+
+                StringBuilder className = new StringBuilder(256);
+                GetClassName(windowHandle, className, className.Capacity);
+                if (!String.Equals(
+                    className.ToString(),
+                    "Chrome_WidgetWin_1",
+                    StringComparison.Ordinal
+                )) {
+                    return true;
+                }
+
+                int titleLength = GetWindowTextLength(windowHandle);
+                if (titleLength <= 0) {
+                    return true;
+                }
+
+                StringBuilder title = new StringBuilder(titleLength + 1);
+                GetWindowText(windowHandle, title, title.Capacity);
+                uint processId;
+                GetWindowThreadProcessId(windowHandle, out processId);
+                windows.Add(new WindowInfo {
+                    Handle = windowHandle,
+                    ProcessId = unchecked((int)processId),
+                    Title = title.ToString()
+                });
+                return true;
+            }, IntPtr.Zero);
+            return windows.ToArray();
+        }
 
         public static void Probe() {
             ITaskbarList4 taskbar = (ITaskbarList4)new TaskbarList();
@@ -144,9 +221,13 @@ namespace CodexReminder.Native {
 "@
 
 function Get-CodeWindowProcesses {
+    $codeProcessIds = [System.Collections.Generic.HashSet[int]]::new()
+    Get-Process Code -ErrorAction SilentlyContinue | ForEach-Object {
+        [void]$codeProcessIds.Add([int]$_.Id)
+    }
     $windows = @(
-        Get-Process Code -ErrorAction SilentlyContinue |
-            Where-Object { $_.MainWindowHandle -ne 0 }
+        [CodexReminder.Native.Badge]::EnumerateCodeWindows() |
+            Where-Object { $codeProcessIds.Contains([int]$_.ProcessId) }
     )
     if ($windows.Count -eq 0) {
         return @()
@@ -163,15 +244,29 @@ function Get-CodeWindowProcesses {
         $currentPid = [int]$processInfo.ParentProcessId
     }
 
-    $ancestorWindows = @($windows | Where-Object { $ancestorIds.Contains([int]$_.Id) })
-    if ($ancestorWindows.Count -gt 0) {
+    $ancestorWindows = @(
+        $windows | Where-Object { $ancestorIds.Contains([int]$_.ProcessId) }
+    )
+
+    if ($WorkspaceName) {
+        $escapedName = [WildcardPattern]::Escape($WorkspaceName)
+        $workspaceWindows = @(
+            $ancestorWindows |
+                Where-Object { $_.Title -like "*$escapedName*" }
+        )
+        if ($workspaceWindows.Count -gt 0) {
+            return $workspaceWindows
+        }
+    }
+
+    if ($ancestorWindows.Count -eq 1) {
         return $ancestorWindows
     }
 
     if ($WorkspaceName) {
         $escapedName = [WildcardPattern]::Escape($WorkspaceName)
         $workspaceWindows = @(
-            $windows | Where-Object { $_.MainWindowTitle -like "*$escapedName*" }
+            $windows | Where-Object { $_.Title -like "*$escapedName*" }
         )
         if ($workspaceWindows.Count -gt 0) {
             return $workspaceWindows
@@ -182,7 +277,7 @@ function Get-CodeWindowProcesses {
         return $windows
     }
 
-    return $windows
+    return @()
 }
 
 $targets = @(Get-CodeWindowProcesses)
@@ -193,7 +288,7 @@ if ($DryRun) {
 else {
     foreach ($target in $targets) {
         [CodexReminder.Native.Badge]::Set(
-            $target.MainWindowHandle,
+            $target.Handle,
             $Count,
             $MaxCount
         )
@@ -204,5 +299,7 @@ else {
     count = $Count
     dryRun = [bool]$DryRun
     matchedWindows = $targets.Count
-    processIds = @($targets | ForEach-Object { $_.Id })
+    processIds = @($targets | ForEach-Object { $_.ProcessId })
+    windowHandles = @($targets | ForEach-Object { $_.Handle.ToInt64() })
+    windowTitles = @($targets | ForEach-Object { $_.Title })
 } | ConvertTo-Json -Compress

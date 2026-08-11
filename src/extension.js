@@ -201,7 +201,10 @@ class ReminderController {
         }
       },
       onThreadRead: (threadId) => {
-        if (threadId && vscode.window.state.focused) {
+        // Codex broadcasts read-state changes to every window. The broadcast can
+        // arrive after the window that owns the visible thread has lost focus, so
+        // focus is not a reliable condition for consuming it.
+        if (threadId) {
           void this.clearThread(threadId, 'Codex reported the thread as read');
         }
       },
