@@ -10,7 +10,7 @@ See when Codex has replied or needs your input without repeatedly returning to i
 
 ## Features
 
-- Counts completed Codex replies and `request_user_input` prompts.
+- Counts completed Codex replies and synchronous/asynchronous input prompts (`request_user_input` and `request_user_input_async`).
 - Shows a true numeric Windows taskbar overlay using `ITaskbarList3.SetOverlayIcon`.
 - Provides a clickable `Codex N` status bar item on Windows, Linux, and macOS.
 - Clears the relevant count when the Codex conversation is opened or becomes visible.
@@ -114,7 +114,7 @@ Codex 回复完成或需要你输入时，扩展会在 VS Code 状态栏显示�
 
 ## 功能
 
-- 统计 Codex 已完成的回复和 `request_user_input` 提问。
+- 统计 Codex 已完成的回复，以及 `request_user_input` 和 `request_user_input_async` 同步/异步提问。
 - Windows 上通过 `ITaskbarList3.SetOverlayIcon` 显示真实数字任务栏角标。
 - Windows、Linux 和 macOS 均提供可点击的 `Codex N` 状态栏入口。
 - 打开对应 Codex 会话或让其重新可见时清除相关计数。

@@ -119,3 +119,45 @@ test('recent day directory list has the requested size', () => {
   assert.equal(directories.length, 3);
   assert.equal(new Set(directories).size, 3);
 });
+
+test('session polling detects new async questions once without replaying history', async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-reminder-async-'));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const day = recentDayDirectories(path.join(directory, 'sessions'), 1)[0];
+  await fs.mkdir(day, { recursive: true });
+  const file = path.join(day, 'session.jsonl');
+  const question = (callId) => ({
+    type: 'response_item',
+    payload: { type: 'function_call', name: 'request_user_input_async', id: 'item-' + callId, call_id: callId }
+  });
+  const jsonl = (records) => records.map((record) => JSON.stringify(record) + '\n').join('');
+  await fs.writeFile(file, jsonl([
+    { type: 'session_meta', payload: {
+      id: 'thread-1', originator: 'codex_vscode', source: 'vscode', thread_source: 'user', cwd: directory
+    } },
+    question('historical')
+  ]));
+  const events = [];
+  const monitor = new CodexSessionMonitor({
+    codexHome: directory, workspaceRoots: [directory],
+    onAttention: (event) => events.push(event)
+  });
+  t.after(() => monitor.dispose());
+  await monitor.start();
+  monitor.dispose();
+  await monitor._poll();
+  assert.deepEqual(events, []);
+
+  await fs.appendFile(file, jsonl([
+    question('call-1'),
+    { type: 'event_msg', payload: { type: 'request_user_input_async', call_id: 'call-1' } },
+    { type: 'response_item', payload: { type: 'function_call_output', call_id: 'call-1', output: '{}' } },
+    question('call-2')
+  ]));
+  await monitor._poll();
+  await monitor._poll();
+  assert.deepEqual(events, [
+    { threadId: 'thread-1', kind: 'question', eventId: 'question:call-1' },
+    { threadId: 'thread-1', kind: 'question', eventId: 'question:call-2' }
+  ]);
+});

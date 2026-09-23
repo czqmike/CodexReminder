@@ -2,7 +2,7 @@
   "name": "codex-reminder",
   "displayName": "Codex Reminder",
   "description": "Unofficial reminder for Codex replies and input requests in the VS Code status bar and Windows taskbar.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "czqmike",
   "author": {
     "name": "czqmike"

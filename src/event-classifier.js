@@ -2,6 +2,8 @@
 
 const path = require('node:path');
 
+const USER_INPUT_REQUESTS = new Set(['request_user_input', 'request_user_input_async']);
+
 function isUserVscodeSession(record, workspaceRoots = []) {
   if (!record || record.type !== 'session_meta' || !record.payload) {
     return false;
@@ -74,7 +76,7 @@ function classifyRecord(record) {
   if (
     record.type === 'response_item' &&
     (payload.type === 'function_call' || payload.type === 'custom_tool_call') &&
-    payload.name === 'request_user_input'
+    USER_INPUT_REQUESTS.has(payload.name)
   ) {
     const callId = payload.call_id || payload.id;
     if (typeof callId === 'string' && callId.length > 0) {
@@ -87,8 +89,9 @@ function classifyRecord(record) {
 
   if (
     record.type === 'event_msg' &&
-    payload.type === 'request_user_input' &&
-    typeof payload.call_id === 'string'
+    USER_INPUT_REQUESTS.has(payload.type) &&
+    typeof payload.call_id === 'string' &&
+    payload.call_id.length > 0
   ) {
     return {
       kind: 'question',

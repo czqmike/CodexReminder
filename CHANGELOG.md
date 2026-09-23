@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2] - 2026-09-22
+
+### Fixed
+
+- Detect `request_user_input_async` questions from newer Codex versions so they increment the status bar and Windows taskbar unread count, while retaining synchronous prompt support and call-ID deduplication.
+- Ignore input-request events with empty call IDs.
+
 ## [1.0.1] - 2026-08-11
 
 ### Fixed

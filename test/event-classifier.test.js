@@ -125,3 +125,43 @@ test('path containment handles exact, nested, sibling, and special-character pat
   assert.equal(isPathInside(workspaceRoot, otherWorkspace), false);
   assert.equal(isPathInside(specialRoot, path.join(specialRoot, 'child')), true);
 });
+
+for (const name of ['request_user_input', 'request_user_input_async']) {
+  test(`classifies ${name} calls and events using stable question IDs`, () => {
+    for (const type of ['function_call', 'custom_tool_call']) {
+      for (const identifier of [{ call_id: 'call-1', id: 'item-1' }, { id: 'call-1' }]) {
+        assert.deepEqual(
+          classifyRecord({ type: 'response_item', payload: { type, name, ...identifier } }),
+          { kind: 'question', eventId: 'question:call-1' }
+        );
+      }
+    }
+    assert.deepEqual(
+      classifyRecord({ type: 'event_msg', payload: { type: name, call_id: 'call-1' } }),
+      { kind: 'question', eventId: 'question:call-1' }
+    );
+  });
+
+  test(`ignores ${name} records without a valid call identifier and tool outputs`, () => {
+    for (const call_id of [undefined, null, '', 123]) {
+      assert.equal(classifyRecord({
+        type: 'response_item', payload: { type: 'function_call', name, call_id }
+      }), undefined);
+      assert.equal(classifyRecord({
+        type: 'event_msg', payload: { type: name, call_id }
+      }), undefined);
+    }
+    assert.equal(classifyRecord({
+      type: 'response_item', payload: { type: 'function_call_output', name, call_id: 'call-1' }
+    }), undefined);
+  });
+}
+
+test('does not mistake similarly named tools for user input requests', () => {
+  for (const name of ['request_user_input_async_result', 'other_request_user_input', 'exec']) {
+    assert.equal(classifyRecord({
+      type: 'response_item',
+      payload: { type: 'function_call', name, call_id: 'call-1', arguments: 'request_user_input_async' }
+    }), undefined);
+  }
+});
