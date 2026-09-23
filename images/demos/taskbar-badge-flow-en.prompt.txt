@@ -1,0 +1,12 @@
+Use case: infographic-diagram / UI product illustration.
+Create a polished wide landscape English infographic, 2:1 aspect ratio, for the English section of the Codex Reminder GitHub README. Instantly show the Windows taskbar VS Code app icon unread badge count INCREASING and then being CLEARED.
+Composition: three large equal outlined panels left to right on a restrained dark navy background. Each panel contains the same close-up horizontal charcoal Windows-style taskbar segment, same scale and geometry, with a large recognizable blue Visual Studio Code icon at the center, a neutral Windows icon on its left and a neutral gray folder icon on its right. These surrounding icons are small. Icons and counts are large and sharp.
+Panel 1 exact English label: "New message". VS Code icon carries a vivid red circular numeric overlay at its LOWER-RIGHT corner with a bold white "1".
+Panel 2 exact English label: "Unread updates". Same VS Code icon carries the same red lower-right overlay with bold white "3".
+Panel 3 exact English label: "Cleared". Identical VS Code icon with the red overlay completely removed. No dot, no badge, no number zero, no checkmark over the icon.
+Between panels 1 and 2: clear light-blue rightward arrow with text "+2". Between panels 2 and 3: rightward arrow with text "Clear unread"; split into two short lines if needed.
+Top title exactly: "Codex Reminder". Subtitle exactly: "Taskbar badge notifications".
+Small centered bottom caption exactly: "Illustration · Not a screenshot".
+Crisp product-documentation artwork, generous spacing, precise alignment, high-contrast legible white sans-serif text. Straight-on front view, no perspective distortion, no ornamental elements. Blue VS Code symbols and red number badges are the focus.
+ALL labels must be English, except the product brand and numbers which remain as specified. No Chinese text anywhere.
+Privacy: generic generated UI only. No actual desktop screenshots, usernames, paths, code, accounts, messages, clocks, emails or sensitive information. No additional labels or invented functionality. These are Windows TASKBAR overlays, not desktop shortcut icons or editor activity badges.

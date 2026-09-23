@@ -23,6 +23,27 @@
 
 4. Complete the Windows acceptance scenarios in this document.
 5. Commit the release changes, then create and push an exact lowercase `vX.Y.Z` tag. Git actions are intentionally manual.
+
+   For the `v1.0.1` release prepared on `master`, run these commands individually:
+
+   ```powershell
+   node scripts/check-release.js v1.0.1
+   npm run verify:package
+
+   git add .github/workflows/ci.yml .github/workflows/release.yml CHANGELOG.md RELEASING.md
+   git diff --cached
+
+   git commit -m "ci: prepare v1.0.1 release"
+   git tag -a v1.0.1 -m "Codex Reminder v1.0.1"
+
+   git push origin master
+   git push origin v1.0.1
+   ```
+
+   The final command triggers the Release workflow. If repository variable
+   `MARKETPLACE_OIDC_ENABLED` is `true`, it also starts the Marketplace job,
+   subject to the `marketplace` environment approval rules.
+
 6. The release workflow builds one `dist/codex-reminder.vsix`, verifies it, uploads it as a workflow artifact, and attaches the same file to the GitHub Release.
 
 ## First Marketplace release

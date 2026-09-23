@@ -1,0 +1,11 @@
+Use case: infographic-diagram / UI product illustration.
+Create one polished wide landscape image (roughly 2:1 aspect ratio) for the Codex Reminder GitHub README. Show the Windows taskbar VS Code app icon unread badge count INCREASING and then being CLEARED, instantly understandable at a glance.
+Composition: three large equal panels left to right, on a restrained dark navy background. Each panel contains the SAME close-up Windows-style taskbar segment, same scale and geometry, with a large recognizable blue Visual Studio Code icon at the center. The taskbar is a horizontal charcoal strip with subtle rounding and minimal neutral surrounding elements. Make icons and counts large and sharp.
+Panel 1 label exactly: "新消息". VS Code icon carries a vivid red circular numeric overlay at its LOWER-RIGHT corner with a bold white "1".
+Panel 2 label exactly: "未读累积". Same VS Code icon carries same red lower-right overlay with bold white "3".
+Panel 3 label exactly: "已清除". Identical VS Code icon with the red overlay COMPLETELY REMOVED. No red dot, no badge, no number zero, no checkmark over icon.
+Between panels 1 and 2: clear rightward arrow with text "+2". Between panels 2 and 3: rightward arrow with text "清除未读".
+Top title exactly: "Codex Reminder". Subtitle exactly: "任务栏图标提醒".
+Small bottom caption exactly: "功能示意图 · 非实机截图".
+Modern, crisp product-documentation illustration, generous negative space, precise alignment, high contrast legible Chinese sans-serif type. Blue VS Code symbols and red numeric badges are focal points. Flat front view, no perspective distortion, no neon effects, no extra ornamental elements.
+Privacy: generic generated UI only. No actual desktop screenshots, usernames, paths, code, accounts, messages, clocks, emails or sensitive information. No additional labels or invented functionality. The illustration represents TASKBAR overlays, not desktop shortcut icons or in-editor activity badges.
