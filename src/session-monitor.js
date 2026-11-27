@@ -276,11 +276,13 @@ class CodexSessionMonitor {
 class CodexLogMonitor {
   constructor(options) {
     this.logPath = options.logPath;
+    this.databasePath = options.databasePath;
     this.pollIntervalMs = options.pollIntervalMs || 1000;
     this.onThreadVisible = options.onThreadVisible;
     this.onThreadRead = options.onThreadRead;
     this.output = options.output;
     this.state = new TailState(this.logPath, 0);
+    this.unreadThreads = new Set();
     this.activeThreadId = undefined;
     this.timer = undefined;
     this.polling = false;
@@ -288,6 +290,7 @@ class CodexLogMonitor {
   }
 
   async start() {
+    this._pollReadState();
     try {
       this.state.offset = (await fs.stat(this.logPath)).size;
       this.initialized = true;
@@ -313,6 +316,7 @@ class CodexLogMonitor {
     }
     this.polling = true;
     try {
+      this._pollReadState();
       if (!this.initialized) {
         try {
           await fs.stat(this.logPath);
@@ -332,6 +336,31 @@ class CodexLogMonitor {
     }
   }
 
+  _pollReadState() {
+    if (!this.databasePath) {
+      return;
+    }
+
+    let unreadThreads;
+    try {
+      unreadThreads = readCodexUnreadThreads(this.databasePath);
+    } catch {
+      // The optional storage signal can be unavailable while VS Code updates it.
+      return;
+    }
+    if (!unreadThreads) {
+      return;
+    }
+
+    const previous = this.unreadThreads;
+    this.unreadThreads = unreadThreads;
+    for (const threadId of previous) {
+      if (!unreadThreads.has(threadId)) {
+        this.onThreadRead?.(threadId);
+      }
+    }
+  }
+
   _handleLine(line) {
     const activity = line.match(
       /thread_stream_view_activity_changed active=(true|false) conversationId=([0-9a-f-]+)/
@@ -348,18 +377,44 @@ class CodexLogMonitor {
       return;
     }
 
-    const resumed = line.match(
-      /maybe_resume_started conversationId=([0-9a-f-]+).*documentVisibilityState=visible/
-    );
-    if (resumed) {
-      this.activeThreadId = resumed[1];
-      this.onThreadVisible?.(resumed[1]);
-      return;
+    const resumeFields = line.match(/(?:^|\s)maybe_resume_started\s+(.*)/)?.[1];
+    if (resumeFields && /(?:^|\s)documentVisibilityState=visible(?=\s|$)/.test(resumeFields)) {
+      const threadId = resumeFields.match(/(?:^|\s)conversationId=([0-9a-f-]+)(?=\s|$)/)?.[1];
+      if (threadId) {
+        this.activeThreadId = threadId;
+        this.onThreadVisible?.(threadId);
+        return;
+      }
     }
 
     if (line.includes('method=thread-read-state-changed')) {
       this.onThreadRead?.(this.activeThreadId);
     }
+  }
+}
+
+function readCodexUnreadThreads(databasePath) {
+  const DatabaseSync = process.getBuiltinModule?.('node:sqlite')?.DatabaseSync;
+  if (!DatabaseSync) {
+    return undefined;
+  }
+
+  const database = new DatabaseSync(databasePath, { readOnly: true });
+  try {
+    const row = database.prepare('SELECT value FROM ItemTable WHERE key = ?').get('openai.chatgpt');
+    const value = row?.value;
+    const json = value instanceof Uint8Array ? Buffer.from(value).toString('utf8') : value;
+    if (typeof json !== 'string') {
+      return undefined;
+    }
+
+    const state = JSON.parse(json);
+    const ids = state?.['persisted-atom-state']?.['unread-thread-ids-by-host-v1']?.local;
+    if (Array.isArray(ids) && ids.every((id) => typeof id === 'string' && id.length > 0)) {
+      return new Set(ids);
+    }
+  } finally {
+    database.close();
   }
 }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.3] - 2026-11-27
+
+### Fixed
+
+- Clear the Windows taskbar badge and VS Code status bar count when newer Codex versions mark a thread as read.
+
 ## [1.0.2] - 2026-09-22
 
 ### Fixed

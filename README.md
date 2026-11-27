@@ -60,13 +60,13 @@ When a new reply or input request arrives in a conversation you are not currentl
 
 ## How it works
 
-Codex Reminder monitors local Codex session events under `CODEX_HOME/sessions` (or `~/.codex/sessions`) and the current Extension Host's `openai.chatgpt/Codex.log`. It counts only user-created VS Code threads for the current workspace. The extension does not modify those files.
+Codex Reminder monitors local session events under `CODEX_HOME/sessions` (or `~/.codex/sessions`) and the current Extension Host's `openai.chatgpt/Codex.log`. It also checks the local Codex unread thread list in the current VS Code profile. It counts only user-created VS Code threads for the current workspace. All monitored sources are read-only.
 
 ### Privacy
 
 | Area | Behavior |
 | --- | --- |
-| Files read | Local Codex JSONL event files and `Codex.log` |
+| Files read | Local Codex JSONL event files, `Codex.log`, and the `openai.chatgpt` entry in the current VS Code profile's `state.vscdb` |
 | Fields used | Session/thread/workspace identifiers, event type/call identifier, and view/read state |
 | Local storage | Unread counts keyed by thread identifier in VS Code workspace state |
 | Response text | Records are parsed locally, but response text is not used, logged, or persisted by this extension |
@@ -191,7 +191,7 @@ code --install-extension czqmike.codex-reminder
 
 ## 工作方式与隐私
 
-扩展只读取 `CODEX_HOME/sessions`（默认 `~/.codex/sessions`）下的本地 Codex JSONL 事件，以及当前 Extension Host 的 `openai.chatgpt/Codex.log`，不会修改这些文件。
+扩展读取 `CODEX_HOME/sessions`（默认 `~/.codex/sessions`）下的本地 Codex JSONL 事件、当前 Extension Host 的 `openai.chatgpt/Codex.log`，以及当前 VS Code 配置文件 `state.vscdb` 中由 Codex 保存的本地未读会话列表。这些来源均以只读方式访问。
 
 - 使用的字段：会话、线程和工作区标识，事件类型/调用标识，以及会话可见和已读状态。
 - 本地保存：按线程标识统计的未读数量，存放在 VS Code 工作区状态中。

@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
+const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
 const {
   CodexLogMonitor,
@@ -112,6 +113,60 @@ test('Codex log monitor tracks visible and read thread state', () => {
   assert.deepEqual(visible, [threadId]);
   assert.deepEqual(read, [threadId]);
   assert.equal(monitor.activeThreadId, undefined);
+});
+
+test('resuming a visible thread is detected when Codex adds fields before its ID', () => {
+  const visible = [];
+  const monitor = new CodexLogMonitor({
+    logPath: path.resolve('test-fixtures', 'Codex.log'),
+    onThreadVisible: (threadId) => visible.push(threadId)
+  });
+  const threadId = '12345678-1234-1234-1234-123456789abc';
+  const resumed = `maybe_resume_started connectedEnvironmentIds=undefined conversationId=${threadId}`;
+
+  monitor._handleLine(`${resumed} documentVisibilityState=hidden`);
+  assert.deepEqual(visible, []);
+  monitor._handleLine(`${resumed} documentVisibilityState=visible`);
+  assert.deepEqual(visible, [threadId]);
+});
+
+test('Codex read state clears only threads removed from the local unread list', async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-reminder-read-'));
+  const databasePath = path.join(directory, 'state.vscdb');
+  const database = new DatabaseSync(databasePath);
+  t.after(async () => {
+    database.close();
+    await fs.rm(directory, { recursive: true, force: true });
+  });
+  database.exec('CREATE TABLE ItemTable (key TEXT PRIMARY KEY, value BLOB)');
+  const save = database.prepare('INSERT OR REPLACE INTO ItemTable VALUES (?, ?)');
+  const saveUnread = (local) => save.run('openai.chatgpt', Buffer.from(JSON.stringify({
+    'persisted-atom-state': { 'unread-thread-ids-by-host-v1': { local } }
+  })));
+  saveUnread(['read-me', 'keep-unread']);
+
+  const reads = [];
+  const monitor = new CodexLogMonitor({
+    logPath: path.join(directory, 'Codex.log'),
+    databasePath,
+    onThreadRead: (threadId) => reads.push(threadId)
+  });
+  await monitor.start();
+  monitor.dispose();
+  assert.deepEqual(reads, []);
+
+  save.run('openai.chatgpt', '{incomplete');
+  await monitor._poll();
+  assert.deepEqual(reads, []);
+
+  saveUnread(['keep-unread', 'new-unread']);
+  await monitor._poll();
+  await monitor._poll();
+  assert.deepEqual(reads, ['read-me']);
+
+  saveUnread([]);
+  await monitor._poll();
+  assert.deepEqual(reads, ['read-me', 'keep-unread', 'new-unread']);
 });
 
 test('recent day directory list has the requested size', () => {

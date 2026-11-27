@@ -17,6 +17,7 @@ Do not disclose suspected vulnerabilities in a public issue until a fix is avail
 Codex Reminder:
 
 - Reads local Codex session JSONL files and the current Extension Host's `Codex.log`.
+- Reads the local Codex unread thread list from the current VS Code profile's `state.vscdb` in read-only mode.
 - Stores unread counts in VS Code workspace state.
 - Does not send telemetry or make outbound network requests.
 - On Windows, invokes the bundled `scripts/set-taskbar-badge.ps1` with an argument array to update the current VS Code window's taskbar overlay.

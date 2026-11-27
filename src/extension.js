@@ -192,8 +192,14 @@ class ReminderController {
       'openai.chatgpt',
       'Codex.log'
     );
+    const storageUri = this.context.globalStorageUri;
+    const hasLocalStorage = storageUri?.scheme === 'file' &&
+      !storageUri.authority && !storageUri.fsPath.startsWith('\\\\');
     this.logMonitor = new CodexLogMonitor({
       logPath: codexLogPath,
+      databasePath: hasLocalStorage
+        ? path.join(path.dirname(storageUri.fsPath), 'state.vscdb')
+        : undefined,
       pollIntervalMs: cfg.pollIntervalMs,
       onThreadVisible: (threadId) => {
         if (vscode.window.state.focused) {
@@ -201,9 +207,7 @@ class ReminderController {
         }
       },
       onThreadRead: (threadId) => {
-        // Codex broadcasts read-state changes to every window. The broadcast can
-        // arrive after the window that owns the visible thread has lost focus, so
-        // focus is not a reliable condition for consuming it.
+        // Codex read-state updates can arrive after the window loses focus.
         if (threadId) {
           void this.clearThread(threadId, 'Codex reported the thread as read');
         }
